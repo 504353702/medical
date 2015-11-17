@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	 http://www.springframework.org/schema/beans/spring-beans-3.1.xsd 
+	 http://www.springframework.org/schema/tx
+	 http://www.springframework.org/schema/tx/spring-tx.xsd
+	 http://www.springframework.org/schema/aop 
+	 http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+	 http://www.springframework.org/schema/context 
+	 http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	 "
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context" 
+	>
+	<!-- 基于注解的方式使用事务配置声明 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+	<!-- 启用spring注解支持 -->
+	<context:annotation-config />
+	
+	<aop:aspectj-autoproxy />  
+	<!-- 自动扫描 -->
+	<context:component-scan base-package="com.demo.dao" />  
+	<context:component-scan base-package="com.demo.service" />
+	
+	<!-- 数据库配置 -->
+	<bean id="dataSource"
+		class="org.apache.commons.dbcp.BasicDataSource">
+		 <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/test"></property>
+		<property name="username" value="root"></property>
+		<property name="password" value="root"></property>
+	</bean>
+	<!-- 会话工厂 -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.autoReconnect">true</prop>
+				<!-- 用于去掉验证，否则会报错 缺少hibernate验证，造成无法初始化sessionFactory -->
+				<prop key="javax.persistence.validation.mode">none</prop>
+			</props>
+		</property>
+		
+		<property name="annotatedClasses">
+			<list>
+				<value>com.demo.beans.User</value>
+		</list>
+		</property>
+		
+		</bean>
+	<!-- 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	
+	<!-- 事务的传播特性 Advice 定义了在 pointcut 里面定义的程序点具体要做的操作-->
+	<tx:advice id="txadvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="delete*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="modify*" propagation="REQUIRED" />
+			<tx:method name="get*" propagation="REQUIRED"/>
+			 <!--hibernate4必须配置为开启事务 否则 getCurrentSession()获取不到-->
+			<tx:method name="*" propagation="REQUIRED" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 那些类那些方法使用事务 -->
+   <aop:config>
+	  <!-- 只对业务逻辑层实施事务,定义了相应的 Advice 将要发生的地方-->
+		<aop:pointcut id="allManagerMethod" 
+			expression="execution(* com.demo.service.*.*(..)) || execution(* com.demo.phone.service.*.*(..)) " />
+			<!-- “*”返回值，类名,方法名，..参数类型-->
+		<aop:advisor pointcut-ref="allManagerMethod" advice-ref="txadvice" />
+	</aop:config>
+
+  
+	<!-- 邮件服务 -->
+	<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<!-- 服务器 -->
+		<property name="host" value="smtp.163.com" />
+		<!-- 端口号 -->
+		<property name="port" value="25" />
+		<!-- 用户名 -->
+		<property name="username" value="fuxinzhong123@163.com" />
+		<!-- 密码 -->
+		<property name="password" value="fuxinzhong2" />
+		<!-- SMTP服务器验证 -->
+		<property name="javaMailProperties">
+			<props>
+				<!-- 验证身份 -->
+				<prop key="mail.smtp.auth">true</prop>
+			</props>
+		</property>
+	</bean>
+	<bean id="simpleMailMessage" class="org.springframework.mail.SimpleMailMessage">
+		<!-- 发件人email -->
+		<property name="from" value="fuxinzhong123@163.com" />
+	</bean>
+	<bean id="simpleMail" class="com.demo.utils.SendMail">
+		<property name="javaMailSender" ref="javaMailSender" />
+		<property name="simpleMailMessage" ref="simpleMailMessage" />
+	</bean>
+  
+  	<!-- spring石英任务调度 -->
+	<!--要调度的对象 -->
+	<bean id="job" class="comdemo.quartz.QuartzTest"></bean>
+	<!-- 定义目标bean和bean中的方法 -->
+	<bean id="jobtask"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject">
+			<ref local="job" />
+		</property>
+		<property name="targetMethod">
+			<!-- 要执行的方法 -->
+			<value>doScan</value>
+		</property>
+	</bean>
+	<!-- 定义触发的时间 -->
+	<bean id="cron" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail">
+			<ref bean="jobtask" />
+		</property>
+		<property name="cronExpression">
+			<value>0 45 11 * * ?</value>
+		</property>
+	</bean>
+	<!-- 总管理 -->
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="cron" />
+			</list>
+		</property>
+	</bean>
+</beans>
