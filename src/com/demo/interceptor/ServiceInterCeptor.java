@@ -10,8 +10,8 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 
 /**
- * @author 许雷
- * 2014年7月1日20:53:35
+ * @author 付新忠
+ * 2015年7月1日20:53:35
  * service类的切面
  *
  */

@@ -1,0 +1,3 @@
+eclipse.preferences.version=1
+validator.Checked=WebRoot/pages/appjs/jquery.min.js,WebRoot/pages/js,WebRoot/pages/appjs/jquery.js
+validator.Unchecked=

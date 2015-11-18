@@ -17,9 +17,9 @@ import com.demo.utils.SendMail;
 import com.opensymphony.xwork2.ActionSupport;
 
 /**
- * @author 许雷
- * 创建日期：2014年6月26日13:03:18
- * 修改日期：2014年6月26日13:03:24
+ * @author nivelle
+ * 创建日期：2015年6月26日13:03:18
+ * 修改日期：2015年6月26日13:03:24
  * 用户管理模块的action，所有与用户相关的方法
  *
  */
